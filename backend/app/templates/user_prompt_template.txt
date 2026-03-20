@@ -1,0 +1,44 @@
+Проанализируй стартап-идею пользователя и верни JSON в точной схеме.
+
+Идея пользователя:
+{{ idea }}
+
+Схема:
+{
+  "value_prop": {
+    "one_liner": "string",
+    "problem": "string",
+    "solution": "string",
+    "unique_advantage": "string",
+    "promotion_angle": "string"
+  },
+  "target_audience": {
+    "primary_segment": "string",
+    "secondary_segments": ["string"],
+    "core_pains": ["string"],
+    "acquisition_channels": ["string"],
+    "first_100_users_hypothesis": "string"
+  },
+  "monetization_10k_plus": {
+    "revenue_model": "string",
+    "pricing_strategy": "string",
+    "offer_examples": ["string"],
+    "path_to_first_10k_per_month": "string",
+    "key_metrics": ["string"],
+    "key_assumptions": ["string"]
+  },
+  "competitors": {
+    "direct_competitors": [{"name": "string", "why_relevant": "string", "weakness": "string"}],
+    "indirect_competitors": [{"name": "string", "why_relevant": "string", "weakness": "string"}],
+    "positioning_statement": "string",
+    "moat_hypotheses": ["string"]
+  },
+  "mvp_roadmap_2_weeks": {
+    "days": [
+      {"day_number": 1, "goal": "string", "tasks": ["string"], "deliverable": "string", "metric": "string"}
+    ],
+    "launch_criteria": ["string"],
+    "biggest_risks": ["string"]
+  }
+}
+

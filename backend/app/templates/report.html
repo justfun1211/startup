@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font-family: DejaVu Sans, sans-serif; color: #111827; font-size: 14px; line-height: 1.5; }
+      h1 { font-size: 24px; }
+      h2 { margin-top: 24px; color: #1d4ed8; }
+      .muted { color: #6b7280; }
+      .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-top: 12px; }
+      ul { padding-left: 18px; }
+    </style>
+  </head>
+  <body>
+    <h1>Отчет по стартап-идее</h1>
+    <div class="muted">ID анализа: {{ analysis_id }}</div>
+    <div class="card">
+      <strong>Исходная идея</strong>
+      <div>{{ idea }}</div>
+    </div>
+
+    <h2>1. Value Proposition</h2>
+    <div class="card">
+      <p><strong>One-liner:</strong> {{ report.value_prop.one_liner }}</p>
+      <p><strong>Проблема:</strong> {{ report.value_prop.problem }}</p>
+      <p><strong>Решение:</strong> {{ report.value_prop.solution }}</p>
+      <p><strong>Преимущество:</strong> {{ report.value_prop.unique_advantage }}</p>
+      <p><strong>Промо-угол:</strong> {{ report.value_prop.promotion_angle }}</p>
+    </div>
+
+    <h2>2. Target Audience</h2>
+    <div class="card">
+      <p><strong>Основной сегмент:</strong> {{ report.target_audience.primary_segment }}</p>
+      <p><strong>Первые 100 пользователей:</strong> {{ report.target_audience.first_100_users_hypothesis }}</p>
+      <p><strong>Вторичные сегменты:</strong></p>
+      <ul>{% for item in report.target_audience.secondary_segments %}<li>{{ item }}</li>{% endfor %}</ul>
+      <p><strong>Боли:</strong></p>
+      <ul>{% for item in report.target_audience.core_pains %}<li>{{ item }}</li>{% endfor %}</ul>
+      <p><strong>Каналы:</strong></p>
+      <ul>{% for item in report.target_audience.acquisition_channels %}<li>{{ item }}</li>{% endfor %}</ul>
+    </div>
+
+    <h2>3. Monetization $10k+</h2>
+    <div class="card">
+      <p><strong>Модель дохода:</strong> {{ report.monetization_10k_plus.revenue_model }}</p>
+      <p><strong>Стратегия цен:</strong> {{ report.monetization_10k_plus.pricing_strategy }}</p>
+      <p><strong>Путь к 10k:</strong> {{ report.monetization_10k_plus.path_to_first_10k_per_month }}</p>
+      <p><strong>Примеры офферов:</strong></p>
+      <ul>{% for item in report.monetization_10k_plus.offer_examples %}<li>{{ item }}</li>{% endfor %}</ul>
+    </div>
+
+    <h2>4. Competitors</h2>
+    <div class="card">
+      <p><strong>Позиционирование:</strong> {{ report.competitors.positioning_statement }}</p>
+      <p><strong>Прямые конкуренты:</strong></p>
+      <ul>{% for item in report.competitors.direct_competitors %}<li>{{ item.name }} — {{ item.why_relevant }}. Слабость: {{ item.weakness }}</li>{% endfor %}</ul>
+      <p><strong>Непрямые конкуренты:</strong></p>
+      <ul>{% for item in report.competitors.indirect_competitors %}<li>{{ item.name }} — {{ item.why_relevant }}. Слабость: {{ item.weakness }}</li>{% endfor %}</ul>
+    </div>
+
+    <h2>5. 2-week MVP Roadmap</h2>
+    <div class="card">
+      <ul>{% for day in report.mvp_roadmap_2_weeks.days %}<li><strong>День {{ day.day_number }}:</strong> {{ day.goal }}. Итог: {{ day.deliverable }}. Метрика: {{ day.metric }}</li>{% endfor %}</ul>
+      <p><strong>Критерии запуска:</strong></p>
+      <ul>{% for item in report.mvp_roadmap_2_weeks.launch_criteria %}<li>{{ item }}</li>{% endfor %}</ul>
+      <p><strong>Главные риски:</strong></p>
+      <ul>{% for item in report.mvp_roadmap_2_weeks.biggest_risks %}<li>{{ item }}</li>{% endfor %}</ul>
+    </div>
+  </body>
+</html>
+
