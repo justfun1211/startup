@@ -7,7 +7,14 @@ from app.api.deps import get_admin_user
 from app.core.constants import CreditReason
 from app.db.session import get_db_session
 from app.models.admin import AdminActionLog
-from app.schemas.admin import AdminGrantSchema, AdminUserSchema, BroadcastCreateSchema, BroadcastSchema
+from app.schemas.admin import (
+    AdminActionLogSchema,
+    AdminGrantSchema,
+    AdminRecentUserSchema,
+    AdminUserSchema,
+    BroadcastCreateSchema,
+    BroadcastSchema,
+)
 from app.services.analytics.service import AnalyticsService
 from app.services.broadcasts.service import BroadcastService
 from app.services.credits.service import CreditsService
@@ -85,6 +92,17 @@ async def create_broadcast(
     service = BroadcastService(session, get_bot())
     broadcast = await service.create_broadcast(admin, payload.message_text, payload.telegram_file_id, payload.dry_run)
     await service.prepare_deliveries(broadcast, admin)
+    session.add(
+        AdminActionLog(
+            admin_user_id=admin.id,
+            action_type="create_broadcast",
+            payload_json={
+                "broadcast_id": str(broadcast.id),
+                "dry_run": payload.dry_run,
+                "has_image": bool(payload.telegram_file_id),
+            },
+        )
+    )
     await session.commit()
     await (await get_arq_pool()).enqueue_job("process_broadcast", str(broadcast.id))
     return {"id": str(broadcast.id), "status": broadcast.status}
@@ -127,3 +145,37 @@ async def get_broadcast(broadcast_id: str, admin=Depends(get_admin_user), sessio
         started_at=broadcast.started_at,
         finished_at=broadcast.finished_at,
     )
+
+
+@router.get("/recent-users", response_model=list[AdminRecentUserSchema])
+async def list_recent_users(admin=Depends(get_admin_user), session: AsyncSession = Depends(get_db_session)):
+    items = await AdminRepository(session).list_recent_users()
+    return [
+        AdminRecentUserSchema(
+            telegram_id=user.telegram_id,
+            first_name=user.first_name,
+            username=user.username,
+            is_admin=user.is_admin,
+            available_requests=balance.available_requests if balance else 0,
+            reserved_requests=balance.reserved_requests if balance else 0,
+            created_at=user.created_at,
+            last_seen_at=user.last_seen_at,
+        )
+        for user, balance in items
+    ]
+
+
+@router.get("/action-logs", response_model=list[AdminActionLogSchema])
+async def list_action_logs(admin=Depends(get_admin_user), session: AsyncSession = Depends(get_db_session)):
+    items = await AdminRepository(session).list_action_logs()
+    return [
+        AdminActionLogSchema(
+            id=log.id,
+            action_type=log.action_type,
+            admin_telegram_id=admin_telegram_id,
+            target_telegram_id=target_telegram_id,
+            payload_json=log.payload_json,
+            created_at=log.created_at,
+        )
+        for log, admin_telegram_id, target_telegram_id in items
+    ]

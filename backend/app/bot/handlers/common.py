@@ -18,7 +18,6 @@ from app.services.referrals.service import ReferralService
 from app.services.users import UserService
 from app.utils.referrals import parse_referral_payload
 
-
 router = Router()
 
 
@@ -46,7 +45,7 @@ async def start_handler(message: Message, command: CommandObject) -> None:
 
         extra_hint = ""
         if not _is_https_webapp():
-            extra_hint = "\n\nMini App кнопка скрыта локально: Telegram принимает Web App только по HTTPS."
+            extra_hint = "\n\nКнопка Mini App скрыта локально: Telegram принимает Web App только по HTTPS."
 
         await message.answer(
             "Бот анализирует стартап-идеи и превращает их в структурированный план запуска.\n\n"
@@ -146,7 +145,7 @@ async def referral_handler(message: Message) -> None:
             f"Ваша ссылка:\nhttps://t.me/{get_settings().bot_username}?start=ref_{user.referral_code}\n\n"
             f"Приглашено: {stats['invited_count']}\n"
             f"Наград получено: {stats['rewarded_count']}\n"
-            f"Бонус за приглашенного: {stats['inviter_bonus_requests']} запрос(а)\n"
+            f"Бонус вам: {stats['inviter_bonus_requests']} запрос(а)\n"
             f"Бонус новичку: {stats['invitee_bonus_requests']} запрос(а)"
         )
     finally:
@@ -187,9 +186,7 @@ async def admin_handler(message: Message) -> None:
 
 @router.message(F.text == "Отправить идею")
 async def idea_hint_handler(message: Message) -> None:
-    await message.answer(
-        "Отправьте одним сообщением описание стартап-идеи. Чем конкретнее контекст, тем полезнее будет анализ."
-    )
+    await message.answer("Отправьте одним сообщением описание стартап-идеи. Чем конкретнее контекст, тем полезнее будет анализ.")
 
 
 @router.message(F.text)
@@ -210,16 +207,10 @@ async def idea_handler(message: Message) -> None:
         try:
             payload = AnalysisCreateSchema(source="bot", input_text=text)
         except ValidationError:
-            await message.answer(
-                "Опишите идею чуть подробнее. Нужно хотя бы 10 символов, чтобы анализ получился полезным."
-            )
+            await message.answer("Опишите идею чуть подробнее. Нужно хотя бы 10 символов, чтобы анализ получился полезным.")
             return
 
-        await AnalysisService(session).enqueue_analysis(
-            user,
-            payload,
-            await get_arq_pool(),
-        )
+        await AnalysisService(session).enqueue_analysis(user, payload, await get_arq_pool())
         await session.commit()
         await message.answer("Идея принята в работу. Когда отчет будет готов, пришлем его сюда.")
     except ValueError as exc:

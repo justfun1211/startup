@@ -36,6 +36,26 @@ class AdminUserSchema(BaseModel):
     reserved_requests: int
 
 
+class AdminRecentUserSchema(BaseModel):
+    telegram_id: int
+    first_name: str
+    username: str | None
+    is_admin: bool
+    available_requests: int
+    reserved_requests: int
+    created_at: datetime
+    last_seen_at: datetime
+
+
+class AdminActionLogSchema(BaseModel):
+    id: uuid.UUID
+    action_type: str
+    admin_telegram_id: int | None
+    target_telegram_id: int | None
+    payload_json: dict
+    created_at: datetime
+
+
 class BroadcastCreateSchema(BaseModel):
     message_text: str = Field(min_length=1, max_length=4000)
     telegram_file_id: str | None = Field(default=None, max_length=255)

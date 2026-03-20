@@ -1,20 +1,24 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from uuid import UUID
+
+from aiogram.types import LabeledPrice
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.config import get_settings
+from app.core.queue import get_arq_pool
 from app.core.security import decode_session_token
-from app.repositories.users import UserRepository
 from app.db.session import get_db_session
+from app.repositories.payments import PaymentRepository
+from app.repositories.users import UserRepository
 from app.schemas.analysis import AnalysisCreateSchema, AnalysisDetailSchema, AnalysisListItemSchema
 from app.schemas.common import MessageResponse
+from app.schemas.payments import PaymentInvoiceResponse, PaymentPackSchema, PaymentSchema
 from app.schemas.referrals import ReferralMeSchema
 from app.schemas.user import BalanceSchema, UserContextSchema
 from app.services.analysis_service import AnalysisService
 from app.services.credits.service import CreditsService
 from app.services.referrals.service import ReferralService
-from app.core.queue import get_arq_pool
-from app.schemas.payments import PaymentPackSchema
 
 router = APIRouter(prefix="/api", tags=["user"])
 
@@ -89,7 +93,9 @@ async def get_report_pdf(
     detail = await AnalysisService(session).get_detail(user.id, report_uuid, is_admin=user.is_admin)
     if detail is None or detail.pdf_url is None:
         raise HTTPException(status_code=404, detail="PDF недоступен")
+
     from fastapi.responses import FileResponse
+
     from app.models.analysis import AnalysisRun
 
     analysis = await session.get(AnalysisRun, report_uuid)
@@ -116,11 +122,64 @@ async def pricing_packs(session: AsyncSession = Depends(get_db_session)):
     ]
 
 
+@router.post("/pricing/packs/{pack_code}/invoice", response_model=PaymentInvoiceResponse)
+async def pricing_send_invoice(
+    pack_code: str,
+    user=Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    from app.services.payments.service import PaymentsService
+    from app.main import get_bot
+
+    service = PaymentsService(session)
+    try:
+        intent = await service.create_payment_intent(user, pack_code)
+        await session.commit()
+    except ValueError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    await get_bot().send_invoice(
+        chat_id=user.telegram_id,
+        title=intent.pack.title,
+        description=intent.pack.description,
+        payload=intent.payment.invoice_payload,
+        currency="XTR",
+        prices=[LabeledPrice(label=intent.pack.title, amount=intent.pack.stars_amount)],
+        provider_token=get_settings().stars_provider_token,
+        start_parameter=f"pack_{intent.pack.code}",
+    )
+    return PaymentInvoiceResponse(
+        message="Счет отправлен вам в чат с ботом. Откройте диалог и подтвердите оплату в Telegram.",
+        invoice_payload=intent.payment.invoice_payload,
+        amount_xtr=intent.payment.amount_xtr,
+        requests_amount=intent.payment.requests_amount,
+    )
+
+
+@router.get("/payments/{invoice_payload}", response_model=PaymentSchema)
+async def get_payment_status(
+    invoice_payload: str,
+    user=Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    payment = await PaymentRepository(session).get_by_payload(invoice_payload)
+    if payment is None or (payment.user_id != user.id and not user.is_admin):
+        raise HTTPException(status_code=404, detail="Платеж не найден")
+    return PaymentSchema(
+        id=payment.id,
+        invoice_payload=payment.invoice_payload,
+        amount_xtr=payment.amount_xtr,
+        requests_amount=payment.requests_amount,
+        status=payment.status,
+        created_at=payment.created_at,
+        paid_at=payment.paid_at,
+    )
+
+
 @router.get("/referrals/me", response_model=ReferralMeSchema)
 async def referrals_me(user=Depends(get_current_user), session: AsyncSession = Depends(get_db_session)):
     stats = await ReferralService(session).stats_for_user(user)
-    from app.core.config import get_settings
-
     settings = get_settings()
     return ReferralMeSchema(
         referral_link=f"https://t.me/{settings.bot_username}?start=ref_{user.referral_code}",

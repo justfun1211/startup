@@ -26,4 +26,11 @@ class PaymentSchema(BaseModel):
     requests_amount: int
     status: str
     created_at: datetime
+    paid_at: datetime | None = None
 
+
+class PaymentInvoiceResponse(BaseModel):
+    message: str
+    invoice_payload: str
+    amount_xtr: int
+    requests_amount: int

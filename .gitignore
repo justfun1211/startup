@@ -21,6 +21,7 @@ backend/app/storage/
 # Frontend
 webapp/node_modules/
 webapp/dist/
+webapp/tsconfig.tsbuildinfo
 
 # IDE / OS
 .DS_Store
